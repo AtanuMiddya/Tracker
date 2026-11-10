@@ -1,0 +1,74 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Daily Tracker</title>
+<style>
+:root{--bg:#eef1f7;--card:#fff;--ink:#15213b;--mut:#6b7690;--ac:#1f4fd8;--ln:#dde2ee;--ok:#16a34a}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1424;--card:#172038;--ink:#e8ecf7;--mut:#8f9ab5;--ac:#6d93ff;--ln:#27324f}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,"Segoe UI",sans-serif}
+main{max-width:980px;margin:auto;padding:14px 14px 80px}
+header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 12px}
+h1{font-size:20px;margin:0}.mut{color:var(--mut);font-size:13px}
+nav{display:flex;gap:6px;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:5}
+button,input,select,textarea{font:inherit;color:inherit}
+nav button,.btn{border:1px solid var(--ln);background:var(--card);padding:8px 14px;border-radius:8px;cursor:pointer}
+nav button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.g{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}
+.c{background:var(--card);border:1px solid var(--ln);border-radius:10px;padding:14px}
+.c h2{font-size:15px;margin:0 0 10px}
+.big{font-size:56px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--ln)}
+.row:last-child{border:0}
+input[type=number],input[type=text],input[type=date],textarea{border:1px solid var(--ln);background:transparent;border-radius:6px;padding:6px 8px;width:100%}
+input[type=number]{width:74px;text-align:right}input[type=checkbox]{width:20px;height:20px;accent-color:var(--ac)}
+.bar{height:10px;border-radius:5px;background:var(--ln);flex:1;overflow:hidden}.bar i{display:block;height:100%;background:var(--ac)}
+.heat{display:grid;grid-template-rows:repeat(7,14px);grid-auto-flow:column;grid-auto-columns:14px;gap:3px;overflow-x:auto;padding-bottom:6px}
+.heat b{border-radius:3px;background:var(--ln);cursor:pointer}.heat b.t{outline:2px solid var(--ink)}
+.hide{display:none}
+</style></head><body><main>
+<header><div><h1>Daily Tracker</h1><div class="mut" id="cd"></div></div>
+<div style="display:flex;gap:6px;align-items:center"><button class="btn" onclick="mv(-1)" aria-label="Previous day">‹</button><input type="date" id="dt" onchange="cur=this.value;draw()"><button class="btn" onclick="mv(1)" aria-label="Next day">›</button></div></header>
+<nav id="nav"></nav><div id="v"></div></main>
+<script>
+const SUBJ=[["Maths",2],["Electrical",2],["Reasoning",1.5],["English",1.5],["GK",1.5]],
+HAB=["7–8 h sleep","Morning water","Multivitamin","Fish oil","Eat healthy","Workout (as planned)","No junk / sugar","Study 8+ hours","No social media while studying"];
+const $=s=>document.querySelector(s),iso=d=>new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10),
+add=(k,n)=>{const d=new Date(k+"T12:00");d.setDate(d.getDate()+n);return iso(d)};
+let D=JSON.parse(localStorage.t||"{}"),C=JSON.parse(localStorage.c||"{}"),cur=iso(new Date()),tab="today",tm;
+const rec=k=>D[k]||(D[k]={s:[0,0,0,0,0],h:Array(9).fill(0),p:["","",""],pd:[0,0,0],w:0,sl:0,m:3,n:""});
+const sum=a=>a.reduce((x,y)=>x+(+y||0),0);
+function score(r){if(!r)return null;const st=Math.min(1,sum(r.s)/8.5),hb=sum(r.h)/9,pr=sum(r.pd)/3,wt=Math.min(1,r.w/12),sl=Math.min(1,r.sl/7);
+return Math.round(100*(.4*st+.25*hb+.15*pr+.1*wt+.1*sl))/10}
+const col=s=>s==null?"":`background:hsl(${s*12},65%,${45+(10-s)}%)`;
+function save(){localStorage.t=JSON.stringify(D);clearTimeout(tm);tm=setTimeout(push,1500)}
+async function push(){if(!C.url)return;try{await fetch(C.url,{method:"POST",body:JSON.stringify(D)});$("#cd").dataset.s="Synced"}catch(e){}}
+async function pull(){if(!C.url)return;try{const r=await (await fetch(C.url)).json();for(const k in r)if(!D[k]||JSON.stringify(r[k])!==JSON.stringify(D[k]))D[k]=r[k];localStorage.t=JSON.stringify(D);draw()}catch(e){}}
+function U(f,i,v){const r=rec(cur);i===null?r[f]=v:r[f][i]=v;save();$("#sc").textContent=score(r).toFixed(1)}
+function days(){const d=new Date(cur+"T12:00"),w=(d.getDay()+6)%7;return Array.from({length:7},(_,i)=>add(cur,i-w))}
+function exam(n,k){return C[k]?Math.ceil((new Date(C[k])-new Date(iso(new Date())))/864e5):null}
+function draw(){
+$("#dt").value=cur;
+$("#nav").innerHTML=[["today","Today"],["week","Week"],["year","365 days"],["set","Setup"]].map(([k,n])=>`<button class="${tab==k?"on":""}" onclick="tab='${k}';draw()">${n}</button>`).join("");
+const cd=["cgl","je"].map(k=>[k,exam(0,k)]).filter(x=>x[1]!=null).map(x=>`SSC ${x[0].toUpperCase()}: ${x[1]} days left`).join(" · ");$("#cd").textContent=cd||"Focus · Discipline · Consistency · Success";
+let h="";
+if(tab=="today"){const r=rec(cur);
+h=`<div class="g"><div class="c"><h2>Today's score</h2><div class="big"><span id="sc">${score(r).toFixed(1)}</span><span class="mut" style="font-size:20px"> / 10</span></div><div class="mut" style="margin-top:8px">Study 40% · Habits 25% · Priorities 15% · Water 10% · Sleep 10%</div></div>
+<div class="c"><h2>Top 3 priorities</h2>${r.p.map((t,i)=>`<div class="row"><input type="text" value="${t}" oninput="U('p',${i},this.value)" placeholder="Priority ${i+1}"><input type="checkbox" ${r.pd[i]?"checked":""} onchange="U('pd',${i},this.checked?1:0)"></div>`).join("")}</div>
+<div class="c"><h2>Study hours <span class="mut">(target 8.5)</span></h2>${SUBJ.map((s,i)=>`<div class="row"><span>${s[0]} <span class="mut">/ ${s[1]}h</span></span><input type="number" step=".25" min="0" value="${r.s[i]||""}" oninput="U('s',${i},this.value)"></div>`).join("")}</div>
+<div class="c"><h2>Habits</h2>${HAB.map((s,i)=>`<label class="row"><span>${s}</span><input type="checkbox" ${r.h[i]?"checked":""} onchange="U('h',${i},this.checked?1:0)"></label>`).join("")}</div>
+<div class="c"><h2>Body</h2><div class="row"><span>Water (glasses, goal 12)</span><input type="number" min="0" value="${r.w||""}" oninput="U('w',null,+this.value)"></div><div class="row"><span>Sleep (hours)</span><input type="number" step=".5" min="0" value="${r.sl||""}" oninput="U('sl',null,+this.value)"></div><div class="row"><span>Mood</span><select onchange="U('m',null,+this.value)">${["😞","😕","😐","🙂","😄"].map((e,i)=>`<option value="${i}" ${r.m==i?"selected":""}>${e}</option>`).join("")}</select></div></div>
+<div class="c"><h2>Reflection</h2><textarea rows="5" placeholder="What went well? What can improve? Main focus tomorrow?" oninput="U('n',null,this.value)">${r.n}</textarea></div></div>`}
+if(tab=="week"){const ds=days(),sc=ds.map(k=>score(D[k])),f=sc.filter(x=>x!=null),av=f.length?(sum(f)/f.length).toFixed(1):"–";
+h=`<div class="g"><div class="c"><h2>Week score</h2><div class="big">${av}<span class="mut" style="font-size:20px"> / 10</span></div><div class="mut">${f.length} of 7 days logged · ${sum(ds.map(k=>D[k]?sum(D[k].s):0)).toFixed(1)} study hours</div></div>
+<div class="c"><h2>Daily scores</h2>${ds.map((k,i)=>`<div class="row" style="cursor:pointer" onclick="cur='${k}';tab='today';draw()"><span style="width:44px">${["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][i]}</span><div class="bar"><i style="width:${(sc[i]||0)*10}%"></i></div><b style="width:36px;text-align:right">${sc[i]==null?"–":sc[i].toFixed(1)}</b></div>`).join("")}</div></div>`}
+if(tab=="year"){const y=cur.slice(0,4),s=new Date(y+"-01-01T12:00"),off=(s.getDay()+6)%7,all=Object.keys(D).filter(k=>k.startsWith(y)).map(k=>score(D[k])),
+n=(y%4==0&&y%100!=0)||y%400==0?366:365;let c="";for(let i=0;i<off;i++)c+="<span></span>";
+for(let i=0;i<n;i++){const k=add(y+"-01-01",i),sc=score(D[k]);c+=`<b class="${k==iso(new Date())?"t":""}" style="${col(sc)}" title="${k}: ${sc==null?"no data":sc.toFixed(1)}" onclick="cur='${k}';tab='today';draw()"></b>`}
+let st=0,k=iso(new Date());while(D[k]&&score(D[k])>=5){st++;k=add(k,-1)}
+h=`<div class="c"><h2>${y}: ${all.length}/${n} days logged · average ${all.length?(sum(all)/all.length).toFixed(1):"–"} · streak (score ≥ 5) ${st} days</h2><div class="heat">${c}</div><div class="mut">Greener is better. Tap a day to open it.</div></div>`}
+if(tab=="set"){h=`<div class="g"><div class="c"><h2>Exam dates</h2><div class="row"><span>SSC CGL Mains</span><input type="date" style="width:160px" value="${C.cgl||""}" onchange="C.cgl=this.value;sv()"></div><div class="row"><span>SSC JE</span><input type="date" style="width:160px" value="${C.je||""}" onchange="C.je=this.value;sv()"></div></div>
+<div class="c"><h2>Google Drive sync</h2><input type="text" placeholder="Paste Apps Script web app URL" value="${C.url||""}" onchange="C.url=this.value.trim();sv();pull()"><div class="mut" style="margin-top:6px">Keeps your data identical on mobile and PC. Setup steps are in README.</div></div>
+<div class="c"><h2>Backup</h2><button class="btn" onclick="exp()">Download backup</button> <label class="btn">Restore backup<input type="file" hidden accept=".json" onchange="imp(this.files[0])"></label></div></div>`}
+$("#v").innerHTML=h}
+const sv=()=>{localStorage.c=JSON.stringify(C);draw()},mv=n=>{cur=add(cur,n);draw()};
+function exp(){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(D)]));a.download="tracker-backup.json";a.click()}
+async function imp(f){D=JSON.parse(await f.text());save();draw()}
+draw();pull();
+</script></body></html>

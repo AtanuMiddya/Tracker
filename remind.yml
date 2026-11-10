@@ -1,0 +1,15 @@
+name: WhatsApp reminder
+on:
+  schedule:
+    - cron: "30 15 * * *"   # 9:00 PM IST daily
+    - cron: "30 3 * * *"    # 9:00 AM IST daily
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -s -G "https://api.callmebot.com/whatsapp.php" \
+            --data-urlencode "phone=918170988763" \
+            --data-urlencode "apikey=${{ secrets.CALLMEBOT_KEY }}" \
+            --data-urlencode "text=Update your tracker today: ${{ secrets.SITE_URL }}"
